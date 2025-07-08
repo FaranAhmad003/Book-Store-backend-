@@ -23,10 +23,16 @@ export class TransactionService {
 
     try {
       const buyer = await queryRunner.manager.findOne(User, { where: { id: userId } });
-      const admin = await queryRunner.manager.findOne(User, { where: { email: 'admin@example.com' } });
+      const admin = await queryRunner.manager.findOne(User, { where: { id : 7 } });
+      console.log(admin);
+
       const book = await queryRunner.manager.findOne(Book, { where: { id: bookId } });
 
-      if (!buyer || !admin || !book) throw new NotFoundException('Buyer, admin, or book not found');
+      if (!buyer) throw new NotFoundException('Buyer not found');
+      if(!admin) throw new NotFoundException('admin not found');
+      if(!book) throw new NotFoundException('book not found');
+
+
       if (book.quantity < 1) throw new BadRequestException('Book out of stock');
 
       const buyerAccount = await queryRunner.manager
@@ -40,11 +46,14 @@ export class TransactionService {
         .getRepository(Account)
         .createQueryBuilder('account')
         .leftJoinAndSelect('account.user', 'user')
-        .where('user.id = :id', { id: admin.id })
+        .where('user.id = :id', { id: 7 })
         .getOne();
 
-      if (!buyerAccount || !adminAccount) {
-        throw new NotFoundException('Account not found for buyer or admin');
+      if (!buyerAccount) {
+        throw new NotFoundException('Account not found for buyer');
+      }
+       if (!adminAccount) {
+        throw new NotFoundException('Account not found for admin');
       }
 
       if (Number(buyerAccount.balance) < Number(book.price)) {
@@ -75,7 +84,7 @@ export class TransactionService {
       return 'Transaction completed successfully';
     } catch (err) {
       await queryRunner.rollbackTransaction();
-      console.error('💥 Transaction failed:', err);
+      console.error('Transaction failed:', err);
       throw err;
     } finally {
       await queryRunner.release();
